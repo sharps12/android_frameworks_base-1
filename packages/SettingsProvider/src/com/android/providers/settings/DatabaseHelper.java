@@ -82,6 +82,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String TABLE_SYSTEM = "system";
     private static final String TABLE_SECURE = "secure";
     private static final String TABLE_GLOBAL = "global";
+    private static final String TABLE_CMREMIX = "cmremix";
 
     //Maximum number of phones
     private static final int MAX_PHONE_COUNT = 3;
@@ -90,6 +91,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         mValidTables.add(TABLE_SYSTEM);
         mValidTables.add(TABLE_SECURE);
         mValidTables.add(TABLE_GLOBAL);
+        mValidTables.add(TABLE_CMREMIX);
         mValidTables.add("bluetooth_devices");
         mValidTables.add("bookmarks");
 
@@ -140,6 +142,15 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.execSQL("CREATE INDEX globalIndex1 ON global (name);");
     }
 
+    private void createCmremixTable(SQLiteDatabase db) {
+        db.execSQL("CREATE TABLE IF NOT EXISTS cmremix (" +
+                "_id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                "name TEXT UNIQUE ON CONFLICT REPLACE," +
+                "value TEXT" +
+                ");");
+        db.execSQL("CREATE INDEX IF NOT EXISTS cmremixIndex1 ON cmremix (name);");
+    }
+
     @Override
     public void onCreate(SQLiteDatabase db) {
         db.execSQL("CREATE TABLE system (" +
@@ -150,6 +161,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.execSQL("CREATE INDEX systemIndex1 ON system (name);");
 
         createSecureTable(db);
+
+        createCmremixTable(db);
 
         // Only create the global table for the singleton 'owner' user
         if (mUserHandle == UserHandle.USER_OWNER) {
@@ -1559,6 +1572,14 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                     if (stmt != null) stmt.close();
                 }
             }
+            //add cmRemiX table
+            db.beginTransaction();
+            try {
+                createCmremixTable(db);
+                db.setTransactionSuccessful();
+            } finally {
+                db.endTransaction();
+            }
             upgradeVersion = 98;
         }
 
@@ -1804,6 +1825,14 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 db.endTransaction();
                 if (stmt != null) stmt.close();
             }
+            //add cmRemiX table
+            db.beginTransaction();
+            try {
+                createCmremixTable(db);
+                db.setTransactionSuccessful();
+            } finally {
+                db.endTransaction();
+            }
             upgradeVersion = 113;
         }
 
@@ -1882,6 +1911,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             db.execSQL("DROP INDEX IF EXISTS bookmarksIndex1");
             db.execSQL("DROP INDEX IF EXISTS bookmarksIndex2");
             db.execSQL("DROP TABLE IF EXISTS favorites");
+            db.execSQL("DROP TABLE IF EXISTS cmremix");
+            db.execSQL("DROP INDEX IF EXISTS cmremixIndex1");
             onCreate(db);
 
             // Added for diagnosing settings.db wipes after the fact
@@ -2301,6 +2332,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         if (mUserHandle == UserHandle.USER_OWNER) {
             loadGlobalSettings(db);
         }
+        loadCmremixSettings(db);
     }
 
     private void loadSystemSettings(SQLiteDatabase db) {
@@ -2377,6 +2409,16 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     private void loadDefaultHapticSettings(SQLiteStatement stmt) {
         loadBooleanSetting(stmt, Settings.System.HAPTIC_FEEDBACK_ENABLED,
                 R.bool.def_haptic_feedback);
+    }
+
+    private void loadCmremixSettings(SQLiteDatabase db) {
+        SQLiteStatement stmt = null;
+        try {
+            stmt = db.compileStatement("INSERT OR IGNORE INTO cmremix(name,value)"
+                    + " VALUES(?,?);");
+        } finally {
+            if (stmt != null) stmt.close();
+        }
     }
 
     private void loadSecureSettings(SQLiteDatabase db) {
