@@ -8325,6 +8325,15 @@ public final class Settings {
          */
         public static final String BATTERY_SAVER_MODE_COLOR = "battery_save_mode_color";
 
+        /**
+         * MediaScanner behavior on boot.
+         * 0 = enabled
+         * 1 = ask (notification)
+         * 2 = disabled
+         * @hide
+         */
+        public static final String MEDIA_SCANNER_ON_BOOT = "media_scanner_on_boot";
+
     }
 
     /**
